@@ -1,0 +1,264 @@
+<html><head><base href="/">
+    <title>Guía Telefónica Avanzada</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        form {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #contactList {
+            list-style-type: none;
+            padding: 0;
+        }
+        .contact-item {
+            background-color: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .contact-info {
+            flex-grow: 1;
+        }
+        .contact-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .edit-btn, .delete-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .edit-btn {
+            background-color: #f39c12;
+            color: white;
+        }
+        .edit-btn:hover {
+            background-color: #e67e22;
+        }
+        .delete-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+        #searchInput {
+            margin-bottom: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        #importExport {
+            margin-top: 30px;
+            text-align: center;
+        }
+        #importExport button {
+            width: auto;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Guía Telefónica Avanzada</h1>
+        
+        <form id="contactForm">
+            <input type="text" id="name" placeholder="Nombre" required>
+            <input type="tel" id="phone" placeholder="Teléfono" required>
+            <input type="email" id="email" placeholder="Email">
+            <select id="category">
+                <option value="">Seleccionar categoría</option>
+                <option value="familia">Familia</option>
+                <option value="amigos">Amigos</option>
+                <option value="trabajo">Trabajo</option>
+                <option value="otros">Otros</option>
+            </select>
+            <button type="submit" id="submitBtn">Agregar Contacto</button>
+        </form>
+
+        <input type="text" id="searchInput" placeholder="Buscar contactos...">
+
+        <ul id="contactList"></ul>
+
+        <div id="importExport">
+            <button id="exportBtn">Exportar Contactos</button>
+            <input type="file" id="importFile" accept=".json" style="display: none;">
+            <button id="importBtn">Importar Contactos</button>
+        </div>
+    </div>
+
+    <script>
+        let contacts = JSON.parse(localStorage.getItem('contacts')) || [];
+        let editingIndex = -1;
+
+        const contactForm = document.getElementById('contactForm');
+        const contactList = document.getElementById('contactList');
+        const searchInput = document.getElementById('searchInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const importBtn = document.getElementById('importBtn');
+        const importFile = document.getElementById('importFile');
+
+        function saveContacts() {
+            localStorage.setItem('contacts', JSON.stringify(contacts));
+        }
+
+        function renderContacts(filteredContacts = contacts) {
+            contactList.innerHTML = '';
+            filteredContacts.forEach((contact, index) => {
+                const li = document.createElement('li');
+                li.className = 'contact-item';
+                li.innerHTML = `
+                    <div class="contact-info">
+                        <strong>${contact.name}</strong><br>
+                        Teléfono: ${contact.phone}<br>
+                        Email: ${contact.email || 'N/A'}<br>
+                        Categoría: ${contact.category || 'N/A'}
+                    </div>
+                    <div class="contact-actions">
+                        <button class="edit-btn" onclick="editContact(${index})">Editar</button>
+                        <button class="delete-btn" onclick="deleteContact(${index})">Eliminar</button>
+                    </div>
+                `;
+                contactList.appendChild(li);
+            });
+        }
+
+        function addOrUpdateContact(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+            const email = document.getElementById('email').value;
+            const category = document.getElementById('category').value;
+            
+            if (editingIndex === -1) {
+                contacts.push({name, phone, email, category});
+            } else {
+                contacts[editingIndex] = {name, phone, email, category};
+                editingIndex = -1;
+                submitBtn.textContent = 'Agregar Contacto';
+            }
+            
+            saveContacts();
+            renderContacts();
+            contactForm.reset();
+        }
+
+        function deleteContact(index) {
+            if (confirm('¿Estás seguro de que quieres eliminar este contacto?')) {
+                contacts.splice(index, 1);
+                saveContacts();
+                renderContacts();
+            }
+        }
+
+        function editContact(index) {
+            const contact = contacts[index];
+            document.getElementById('name').value = contact.name;
+            document.getElementById('phone').value = contact.phone;
+            document.getElementById('email').value = contact.email || '';
+            document.getElementById('category').value = contact.category || '';
+            editingIndex = index;
+            submitBtn.textContent = 'Actualizar Contacto';
+        }
+
+        function searchContacts() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filteredContacts = contacts.filter(contact => 
+                contact.name.toLowerCase().includes(searchTerm) ||
+                contact.phone.includes(searchTerm) ||
+                (contact.email && contact.email.toLowerCase().includes(searchTerm)) ||
+                (contact.category && contact.category.toLowerCase().includes(searchTerm))
+            );
+            renderContacts(filteredContacts);
+        }
+
+        function exportContacts() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(contacts));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "contacts.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importContacts() {
+            importFile.click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedContacts = JSON.parse(e.target.result);
+                        contacts = contacts.concat(importedContacts);
+                        saveContacts();
+                        renderContacts();
+                        alert('Contactos importados con éxito!');
+                    } catch (error) {
+                        alert('Error al importar contactos. Asegúrate de que el archivo es válido.');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        contactForm.addEventListener('submit', addOrUpdateContact);
+        searchInput.addEventListener('input', searchContacts);
+        exportBtn.addEventListener('click', exportContacts);
+        importBtn.addEventListener('click', importContacts);
+        importFile.addEventListener('change', handleFileSelect);
+
+        renderContacts();
+    </script>
+</body>
+</html>
